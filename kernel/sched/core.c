@@ -6571,6 +6571,9 @@ static void __sched notrace __schedule(unsigned int sched_mode)
 	}
 
 	next = pick_next_task(rq, prev, &rf);
+
+	printk(KERN_DEBUG "to(next): %d", next->pid);
+
 	clear_tsk_need_resched(prev);
 	clear_preempt_need_resched();
 #ifdef CONFIG_SCHED_DEBUG
@@ -6678,6 +6681,9 @@ static void sched_update_worker(struct task_struct *tsk)
 asmlinkage __visible void __sched schedule(void)
 {
 	struct task_struct *tsk = current;
+
+	printk(KERN_DEBUG "start scheduling: %s, %d", __func__, __LINE__);
+	printk(KERN_DEBUG "from(current): %d", tsk->pid);
 
 	sched_submit_work(tsk);
 	do {
