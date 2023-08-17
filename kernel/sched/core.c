@@ -6448,6 +6448,8 @@ pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 # define SM_MASK_PREEMPT	SM_PREEMPT
 #endif
 
+extern bool is_logging;
+
 /*
  * __schedule() is the main scheduler function.
  *
@@ -6572,7 +6574,8 @@ static void __sched notrace __schedule(unsigned int sched_mode)
 
 	next = pick_next_task(rq, prev, &rf);
 
-	printk(KERN_DEBUG "to(next): %d", next->pid);
+	if (is_logging)
+		printk(KERN_DEBUG "to(next): %d", next->pid);
 
 	clear_tsk_need_resched(prev);
 	clear_preempt_need_resched();
@@ -6682,8 +6685,10 @@ asmlinkage __visible void __sched schedule(void)
 {
 	struct task_struct *tsk = current;
 
-	printk(KERN_DEBUG "start scheduling: %s, %d", __func__, __LINE__);
-	printk(KERN_DEBUG "from(current): %d", tsk->pid);
+	if (is_logging) {
+		printk(KERN_DEBUG "start scheduling: %s, %d", __func__, __LINE__);
+		printk(KERN_DEBUG "from(current): %d", tsk->pid);
+	}
 
 	sched_submit_work(tsk);
 	do {

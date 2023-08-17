@@ -1389,5 +1389,7 @@ int __sys_setsockopt(int fd, int level, int optname, char __user *optval,
 		int optlen);
 
 asmlinkage long sys_hello(void);
+asmlinkage long sys_startlog(void);
+asmlinkage long sys_stoplog(void);
 
 #endif
