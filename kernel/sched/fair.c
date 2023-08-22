@@ -56,6 +56,8 @@
 #include "stats.h"
 #include "autogroup.h"
 
+extern bool is_logging;
+
 /*
  * Targeted preemption latency for CPU-bound tasks:
  *
@@ -642,12 +644,30 @@ static inline bool __entity_less(struct rb_node *a, const struct rb_node *b)
  */
 static void __enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
+	struct task_struct *p = NULL;
 	rb_add_cached(&se->run_node, &cfs_rq->tasks_timeline, __entity_less);
+
+	// logging the enqueue entity
+	if (entity_is_task(se))
+		p = task_of(se);
+
+	if (is_logging) {
+		printk(KERN_DEBUG "[CFS %s] pid:%d cfs_rq:%p", __func__, p->pid, cfs_rq);
+	}
 }
 
 static void __dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
+	struct task_struct *p = NULL;
 	rb_erase_cached(&se->run_node, &cfs_rq->tasks_timeline);
+
+	// logging the dequeue entity
+	if (entity_is_task(se))
+		p = task_of(se);
+
+	if (is_logging) {
+		printk(KERN_DEBUG "[CFS %s] pid:%d cfs_rq:%p", __func__, p->pid, cfs_rq);
+	}
 }
 
 struct sched_entity *__pick_first_entity(struct cfs_rq *cfs_rq)
@@ -7807,10 +7827,15 @@ done: __maybe_unused;
 	list_move(&p->se.group_node, &rq->cfs_tasks);
 #endif
 
-	if (hrtick_enabled_fair(rq))
+	if (hrtick_enabled_fair(rq)) 
 		hrtick_start_fair(rq, p);
 
 	update_misfit_status(p, rq);
+
+	if (is_logging) {
+		// CFS scheduling sequence and task priority
+		printk(KERN_DEBUG "[CFS %s] pid:%d prio:%d", __func__, p->pid, p->prio);
+	}
 
 	return p;
 
