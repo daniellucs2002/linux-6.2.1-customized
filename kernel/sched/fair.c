@@ -4915,10 +4915,19 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 	unsigned long ideal_runtime, delta_exec;
 	struct sched_entity *se;
 	s64 delta;
+	struct task_struct *p = NULL;
 
 	ideal_runtime = sched_slice(cfs_rq, curr);
 	delta_exec = curr->sum_exec_runtime - curr->prev_sum_exec_runtime;
 	if (delta_exec > ideal_runtime) {
+		// before being rescheduled, print out the ideal time slice
+		if (entity_is_task(curr))
+			p = task_of(curr);
+
+		if (is_logging) {
+			printk(KERN_DEBUG "[CFS %s] pid:%d timeslice:%lu", __func__, p->pid, ideal_runtime);
+		}
+
 		resched_curr(rq_of(cfs_rq));
 		/*
 		 * The current task ran long enough, ensure it doesn't get
