@@ -9786,8 +9786,10 @@ void __init sched_init(void)
 	int i;
 
 	/* Make sure the linker didn't screw up */
+	// change the BUG_ON rules after adding a scheduling class!!!
 	BUG_ON(&idle_sched_class != &fair_sched_class + 1 ||
-	       &fair_sched_class != &rt_sched_class + 1 ||
+	       &fair_sched_class != &new_sched_class + 1 ||
+		   &new_sched_class != &rt_sched_class + 1 ||
 	       &rt_sched_class   != &dl_sched_class + 1);
 #ifdef CONFIG_SMP
 	BUG_ON(&dl_sched_class != &stop_sched_class + 1);
@@ -9855,6 +9857,10 @@ void __init sched_init(void)
 		init_cfs_rq(&rq->cfs);
 		init_rt_rq(&rq->rt);
 		init_dl_rq(&rq->dl);
+
+		// supposed to initialize the runqueue of new_sched_class here
+		// but no runqueue at current stage
+
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		INIT_LIST_HEAD(&rq->leaf_cfs_rq_list);
 		rq->tmp_alone_branch = &rq->leaf_cfs_rq_list;

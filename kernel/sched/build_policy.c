@@ -44,6 +44,16 @@
 
 #include "rt.c"
 
+static struct task_struct *pick_next_task_new(struct rq *rq)
+{
+    printk(KERN_DEBUG "[NEW %s] try new_sched_class", __func__);
+	return NULL;
+}
+
+DEFINE_SCHED_CLASS(new) = {
+	.pick_next_task		= pick_next_task_new,
+};
+
 #ifdef CONFIG_SMP
 # include "cpudeadline.c"
 # include "pelt.c"
