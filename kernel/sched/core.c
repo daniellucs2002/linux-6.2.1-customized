@@ -6938,12 +6938,15 @@ EXPORT_SYMBOL(default_wake_function);
 
 static void __setscheduler_prio(struct task_struct *p, int prio)
 {
+	// change the scheduling class based on policy/priority range
 	if (dl_prio(prio))
 		p->sched_class = &dl_sched_class;
-	else if (rt_prio(prio))
-		p->sched_class = &rt_sched_class;
+	else if (rt_prio(prio)) 
+			p->sched_class = &rt_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
+
+	printk(KERN_DEBUG "[3 %s] before:%d after:%d rt_priority:%d", __func__, p->prio, prio, p->rt_priority);
 
 	p->prio = prio;
 }
@@ -7423,6 +7426,8 @@ static void __setscheduler_params(struct task_struct *p,
 
 	if (policy == SETPARAM_POLICY)
 		policy = p->policy;
+	
+	printk(KERN_DEBUG "[2 %s] pid:%d before:%d after:%d", __func__, p->pid, p->policy, policy);
 
 	p->policy = policy;
 
@@ -7520,6 +7525,7 @@ req_priv:
 	return 0;
 }
 
+// system call "sys_sched_setscheduler" finally invocates this function
 static int __sched_setscheduler(struct task_struct *p,
 				const struct sched_attr *attr,
 				bool user, bool pi)
@@ -7699,9 +7705,17 @@ change:
 
 	prev_class = p->sched_class;
 
+	printk(KERN_DEBUG "[%s] cfs:%p", __func__, & fair_sched_class);
+	printk(KERN_DEBUG "[%s] rt:%p", __func__, & rt_sched_class);
+
 	if (!(attr->sched_flags & SCHED_FLAG_KEEP_PARAMS)) {
+		printk(KERN_DEBUG "[1 %s before] pid:%d sched:%p", __func__, p->pid, p->sched_class);
+		
+		// make the changes!!!
 		__setscheduler_params(p, attr);
 		__setscheduler_prio(p, newprio);
+
+		printk(KERN_DEBUG "[4 %s after] pid:%d sched:%p", __func__, p->pid, p->sched_class);
 	}
 	__setscheduler_uclamp(p, attr);
 
