@@ -4667,8 +4667,8 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 	 * Revert to default priority/policy on fork if requested.
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
-		if (task_has_dl_policy(p) || task_has_rt_policy(p)) {
-			p->policy = SCHED_NORMAL;
+		if (task_has_dl_policy(p) || task_has_rt_policy(p) || p->policy == SCHED_NORMAL) {
+			p->policy = SCHED_NEW;
 			p->static_prio = NICE_TO_PRIO(0);
 			p->rt_priority = 0;
 		} else if (PRIO_TO_NICE(p->static_prio) < 0)
@@ -4688,6 +4688,8 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 		return -EAGAIN;
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
+	else if (task_has_new_policy(p))
+		p->sched_class = &new_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
 
@@ -6942,7 +6944,9 @@ static void __setscheduler_prio(struct task_struct *p, int prio)
 	if (dl_prio(prio))
 		p->sched_class = &dl_sched_class;
 	else if (rt_prio(prio)) 
-			p->sched_class = &rt_sched_class;
+		p->sched_class = &rt_sched_class;
+	else if (task_has_new_policy(p))
+		p->sched_class = &new_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
 
@@ -9780,6 +9784,14 @@ LIST_HEAD(task_groups);
 static struct kmem_cache *task_group_cache __read_mostly;
 #endif
 
+void init_new_rq(struct new_rq *new_runqueue)
+{
+	new_runqueue->new_nr_running = 0;
+	// WRITE_ONCE(list->next, list);
+	// WRITE_ONCE(list->prev, list);
+	INIT_LIST_HEAD(&new_runqueue->task_list);
+}
+
 void __init sched_init(void)
 {
 	unsigned long ptr = 0;
@@ -9857,6 +9869,7 @@ void __init sched_init(void)
 		init_cfs_rq(&rq->cfs);
 		init_rt_rq(&rq->rt);
 		init_dl_rq(&rq->dl);
+		init_new_rq(&rq->new_runqueue);
 
 		// supposed to initialize the runqueue of new_sched_class here
 		// but no runqueue at current stage

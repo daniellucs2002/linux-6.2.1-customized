@@ -594,6 +594,7 @@ struct sched_new_entity {
 
 	// number of time slices before being preempted
 	unsigned int time_slice;
+	unsigned long time_out;
 };
 
 struct sched_rt_entity {

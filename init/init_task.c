@@ -13,6 +13,8 @@
 #include <linux/numa.h>
 #include <linux/scs.h>
 
+#include <linux/sched/new.h>
+
 #include <linux/uaccess.h>
 
 static struct signal_struct init_signals = {
@@ -78,7 +80,9 @@ struct task_struct init_task
 	.prio		= MAX_PRIO - 20,
 	.static_prio	= MAX_PRIO - 20,
 	.normal_prio	= MAX_PRIO - 20,
-	.policy		= SCHED_NORMAL,
+
+	.policy		= SCHED_NEW,
+
 	.cpus_ptr	= &init_task.cpus_mask,
 	.user_cpus_ptr	= NULL,
 	.cpus_mask	= CPU_MASK_ALL,
@@ -94,6 +98,14 @@ struct task_struct init_task
 	.rt		= {
 		.run_list	= LIST_HEAD_INIT(init_task.rt.run_list),
 		.time_slice	= RR_TIMESLICE,
+	},
+	.new_se	= {
+		.time_slice = NEW_RR_TIMESLICE,
+		.on_rq = 0,
+
+		// #define LIST_HEAD_INIT(name) { &(name), &(name) }
+		// struct list_head task_list;
+		.task_list = LIST_HEAD_INIT(init_task.new_se.task_list),
 	},
 	.tasks		= LIST_HEAD_INIT(init_task.tasks),
 #ifdef CONFIG_SMP

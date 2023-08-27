@@ -354,7 +354,7 @@ static int kthread(void *_create)
 	 * The new thread inherited kthreadd's priority and CPU mask. Reset
 	 * back to default in case they have been changed.
 	 */
-	sched_setscheduler_nocheck(current, SCHED_NORMAL, &param);
+	sched_setscheduler_nocheck(current, SCHED_NEW, &param);
 	set_cpus_allowed_ptr(current, housekeeping_cpumask(HK_TYPE_KTHREAD));
 
 	/* OK, tell user we're spawned, wait for stop or wakeup */
