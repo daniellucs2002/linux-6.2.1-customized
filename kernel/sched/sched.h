@@ -196,11 +196,17 @@ static inline int dl_policy(int policy)
 {
 	return policy == SCHED_DEADLINE;
 }
+
+static inline int new_policy(int policy)
+{
+	return policy == SCHED_NEW;
+}
+
 static inline bool valid_policy(int policy)
 {
 	// make SCHED_NEW a valid policy
 	return idle_policy(policy) || fair_policy(policy) ||
-		rt_policy(policy) || dl_policy(policy) || policy == SCHED_NEW;
+		rt_policy(policy) || dl_policy(policy) || new_policy(policy);
 }
 
 static inline int task_has_idle_policy(struct task_struct *p)
@@ -216,6 +222,11 @@ static inline int task_has_rt_policy(struct task_struct *p)
 static inline int task_has_dl_policy(struct task_struct *p)
 {
 	return dl_policy(p->policy);
+}
+
+static inline int task_has_new_policy(struct task_struct *p)
+{
+	return new_policy(p->policy);
 }
 
 #define cap_scale(v, s) ((v)*(s) >> SCHED_CAPACITY_SHIFT)
@@ -337,6 +348,8 @@ extern int  dl_cpu_busy(int cpu, struct task_struct *p);
 
 struct cfs_rq;
 struct rt_rq;
+
+struct new_rq;  // run queue of the new scheduling class
 
 extern struct list_head task_groups;
 
@@ -696,6 +709,15 @@ struct rt_rq {
 #endif
 };
 
+struct new_rq {
+
+	// number of sched_new_entity in the new_runqueue
+	unsigned int new_nr_running;
+
+	// it's supposed to link to task_list in se
+	struct list_head task_list;
+};
+
 static inline bool rt_rq_is_runnable(struct rt_rq *rt_rq)
 {
 	return rt_rq->rt_queued && rt_rq->rt_nr_running;
@@ -991,6 +1013,7 @@ struct rq {
 	struct cfs_rq		cfs;
 	struct rt_rq		rt;
 	struct dl_rq		dl;
+	struct new_rq		new_runqueue;
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this CPU: */
@@ -2779,6 +2802,9 @@ static inline void resched_latency_warn(int cpu, u64 latency) {}
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);
 extern void init_rt_rq(struct rt_rq *rt_rq);
 extern void init_dl_rq(struct dl_rq *dl_rq);
+
+// initialization called for elsewhere
+extern void init_new_rq(struct new_rq *new_rq_init);
 
 extern void cfs_bandwidth_usage_inc(void);
 extern void cfs_bandwidth_usage_dec(void);

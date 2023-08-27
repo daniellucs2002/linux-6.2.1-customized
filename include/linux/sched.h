@@ -47,6 +47,7 @@ struct bpf_local_storage;
 struct bpf_run_ctx;
 struct capture_control;
 struct cfs_rq;
+struct new_rq;
 struct fs_struct;
 struct futex_pi_state;
 struct io_context;
@@ -580,6 +581,21 @@ struct sched_entity {
 #endif
 };
 
+struct sched_new_entity {
+
+	// struct list_head {
+	// 	struct list_head *next, *prev;
+	// }; 16 bytes; 2-way linked list
+	// organize all the sched_new_entity together
+	struct list_head task_list;
+
+	// 0 if not on runqueue, 1 if on runqueue
+	unsigned short on_rq;
+
+	// number of time slices before being preempted
+	unsigned int time_slice;
+};
+
 struct sched_rt_entity {
 	struct list_head		run_list;
 	unsigned long			timeout;
@@ -784,6 +800,9 @@ struct task_struct {
 	int				static_prio;
 	int				normal_prio;
 	unsigned int			rt_priority;
+
+	// if the current task_struct's policy is SCHED_NEW
+	struct sched_new_entity new_se;
 
 	struct sched_entity		se;
 	struct sched_rt_entity		rt;
