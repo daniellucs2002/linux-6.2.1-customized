@@ -46,6 +46,10 @@
 
 #include "rt.c"
 
+#ifdef CONFIG_NEW_SCHED
+
+extern bool is_logging;
+
 static inline int on_new_rq(struct sched_new_entity *new_se)
 {
 	return new_se->on_rq;
@@ -87,36 +91,29 @@ static void enqueue_task_new(struct rq *rq, struct task_struct *p, int flags)
 	
 	enqueue_new_entity(rq, new_se, flags & ENQUEUE_HEAD);
 	add_nr_running(rq, 1);
+
+	if (is_logging)
+		printk(KERN_DEBUG "[NEW %s] new_rq:%d rq:%d", 
+				__func__, rq->new_runqueue.new_nr_running, rq->nr_running);
 }
 
 static void update_curr_new(struct rq *rq)
 {
-	struct task_struct *curr = rq->curr;
-	u64 delta_exec;
-
-	delta_exec = rq_clock_task(rq) - curr->se.exec_start;
-	if (unlikely((s64)delta_exec < 0))
-		delta_exec = 0;
-	
-	schedstat_set(curr->stats.exec_max,
-		      max(curr->stats.exec_max, delta_exec));
-
-	curr->se.sum_exec_runtime += delta_exec;
-	account_group_exec_runtime(curr, delta_exec);
-
-	curr->se.exec_start = rq_clock_task(rq);
-	cgroup_account_cputime(curr, delta_exec);
 }
 
 static void dequeue_task_new(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct sched_new_entity *new_se = & p->new_se;
 
-	update_curr_new(rq);
 	dequeue_new_entity(rq, new_se);
 	sub_nr_running(rq, 1);
+
+	if (is_logging)
+		printk(KERN_DEBUG "[NEW %s] new_rq:%d rq:%d", 
+				__func__, rq->new_runqueue.new_nr_running, rq->nr_running);
 }
 
+// REQUEUE: move to tail on a list
 static void requeue_task_new(struct rq *rq, struct task_struct *p)
 {
 	list_move_tail(&p->new_se.task_list, &rq->new_runqueue.task_list);
@@ -134,14 +131,10 @@ static void check_preempt_curr_new(struct rq *rq, struct task_struct *p, int fla
 
 static inline void set_next_task_new(struct rq *rq, struct task_struct *p, bool first)
 {
-	p->se.exec_start = rq_clock_task(rq);
 }
 
 static struct task_struct *pick_next_task_new(struct rq *rq)
 {
-    // printk(KERN_DEBUG "[NEW %s] try new_sched_class", __func__);
-	// return NULL;
-
 	struct task_struct *next;
 	struct sched_new_entity *next_se;
 
@@ -152,17 +145,16 @@ static struct task_struct *pick_next_task_new(struct rq *rq)
 	next = new_task_of(next_se);
 	if (!next)
 		return NULL;
-	
-	next->se.exec_start = rq_clock_task(rq);
-	set_next_task_new(rq, next, true);
+
+	if (is_logging)
+		printk(KERN_DEBUG "[NEW %s] pid:%d", __func__, next->pid);
+
 	return next;
 }
 
 static void task_tick_new(struct rq *rq, struct task_struct *p, int queued)
 {
 	struct sched_new_entity *new_se = &p->new_se;
-
-	update_curr_new(rq);
 
 	if (!task_has_new_policy(p))
 		return;
@@ -172,7 +164,10 @@ static void task_tick_new(struct rq *rq, struct task_struct *p, int queued)
 	
 	new_se->time_slice = NEW_RR_TIMESLICE;
 
+	// There's more than one task in the new_sched_class runqueue
 	if (new_se->task_list.prev != new_se->task_list.next) {
+		if (is_logging)
+			printk(KERN_DEBUG "[NEW %s] pid:%d being rescheduled", __func__, p->pid);
 		requeue_task_new(rq, p);
 		resched_curr(rq);
 	}
@@ -194,8 +189,6 @@ static unsigned int get_rr_interval_new(struct rq *rq, struct task_struct *p)
 
 static void put_prev_task_new(struct rq *rq, struct task_struct *p)
 {
-	if (on_new_rq(&p->new_se))
-		update_curr_new(rq);
 }
 
 DEFINE_SCHED_CLASS(new) = {
@@ -212,6 +205,8 @@ DEFINE_SCHED_CLASS(new) = {
 	.get_rr_interval	= get_rr_interval_new,
 	.update_curr		= update_curr_new,
 };
+
+#endif
 
 #ifdef CONFIG_SMP
 # include "cpudeadline.c"

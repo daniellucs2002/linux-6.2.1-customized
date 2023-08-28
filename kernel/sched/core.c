@@ -4667,8 +4667,13 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 	 * Revert to default priority/policy on fork if requested.
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
+		#ifdef CONFIG_NEW_SCHED
 		if (task_has_dl_policy(p) || task_has_rt_policy(p) || p->policy == SCHED_NORMAL) {
 			p->policy = SCHED_NEW;
+		#else
+		if (task_has_dl_policy(p) || task_has_rt_policy(p)) {
+			p->policy = SCHED_NORMAL;
+		#endif
 			p->static_prio = NICE_TO_PRIO(0);
 			p->rt_priority = 0;
 		} else if (PRIO_TO_NICE(p->static_prio) < 0)
@@ -4688,8 +4693,10 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 		return -EAGAIN;
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
+#ifdef CONFIG_NEW_SCHED
 	else if (task_has_new_policy(p))
 		p->sched_class = &new_sched_class;
+#endif
 	else
 		p->sched_class = &fair_sched_class;
 
@@ -6945,12 +6952,12 @@ static void __setscheduler_prio(struct task_struct *p, int prio)
 		p->sched_class = &dl_sched_class;
 	else if (rt_prio(prio)) 
 		p->sched_class = &rt_sched_class;
+#ifdef CONFIG_NEW_SCHED
 	else if (task_has_new_policy(p))
 		p->sched_class = &new_sched_class;
+#endif
 	else
 		p->sched_class = &fair_sched_class;
-
-	printk(KERN_DEBUG "[3 %s] before:%d after:%d rt_priority:%d", __func__, p->prio, prio, p->rt_priority);
 
 	p->prio = prio;
 }
@@ -7430,8 +7437,6 @@ static void __setscheduler_params(struct task_struct *p,
 
 	if (policy == SETPARAM_POLICY)
 		policy = p->policy;
-	
-	printk(KERN_DEBUG "[2 %s] pid:%d before:%d after:%d", __func__, p->pid, p->policy, policy);
 
 	p->policy = policy;
 
@@ -7709,17 +7714,10 @@ change:
 
 	prev_class = p->sched_class;
 
-	printk(KERN_DEBUG "[%s] cfs:%p", __func__, & fair_sched_class);
-	printk(KERN_DEBUG "[%s] rt:%p", __func__, & rt_sched_class);
-
 	if (!(attr->sched_flags & SCHED_FLAG_KEEP_PARAMS)) {
-		printk(KERN_DEBUG "[1 %s before] pid:%d sched:%p", __func__, p->pid, p->sched_class);
-		
 		// make the changes!!!
 		__setscheduler_params(p, attr);
 		__setscheduler_prio(p, newprio);
-
-		printk(KERN_DEBUG "[4 %s after] pid:%d sched:%p", __func__, p->pid, p->sched_class);
 	}
 	__setscheduler_uclamp(p, attr);
 
@@ -9784,6 +9782,7 @@ LIST_HEAD(task_groups);
 static struct kmem_cache *task_group_cache __read_mostly;
 #endif
 
+#ifdef CONFIG_NEW_SCHED
 void init_new_rq(struct new_rq *new_runqueue)
 {
 	new_runqueue->new_nr_running = 0;
@@ -9791,6 +9790,7 @@ void init_new_rq(struct new_rq *new_runqueue)
 	// WRITE_ONCE(list->prev, list);
 	INIT_LIST_HEAD(&new_runqueue->task_list);
 }
+#endif
 
 void __init sched_init(void)
 {
@@ -9799,10 +9799,17 @@ void __init sched_init(void)
 
 	/* Make sure the linker didn't screw up */
 	// change the BUG_ON rules after adding a scheduling class!!!
+#ifdef CONFIG_NEW_SCHED
 	BUG_ON(&idle_sched_class != &fair_sched_class + 1 ||
 	       &fair_sched_class != &new_sched_class + 1 ||
 		   &new_sched_class != &rt_sched_class + 1 ||
 	       &rt_sched_class   != &dl_sched_class + 1);
+#else  // !CONFIG_NEW_SCHED
+	BUG_ON(&idle_sched_class != &fair_sched_class + 1 ||
+	       &fair_sched_class != &rt_sched_class + 1 ||
+	       &rt_sched_class   != &dl_sched_class + 1);
+#endif
+
 #ifdef CONFIG_SMP
 	BUG_ON(&dl_sched_class != &stop_sched_class + 1);
 #endif
@@ -9869,11 +9876,9 @@ void __init sched_init(void)
 		init_cfs_rq(&rq->cfs);
 		init_rt_rq(&rq->rt);
 		init_dl_rq(&rq->dl);
+#ifdef CONFIG_NEW_SCHED
 		init_new_rq(&rq->new_runqueue);
-
-		// supposed to initialize the runqueue of new_sched_class here
-		// but no runqueue at current stage
-
+#endif
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		INIT_LIST_HEAD(&rq->leaf_cfs_rq_list);
 		rq->tmp_alone_branch = &rq->leaf_cfs_rq_list;

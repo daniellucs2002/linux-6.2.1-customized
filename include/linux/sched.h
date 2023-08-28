@@ -47,7 +47,9 @@ struct bpf_local_storage;
 struct bpf_run_ctx;
 struct capture_control;
 struct cfs_rq;
+#ifdef CONFIG_NEW_SCHED
 struct new_rq;
+#endif
 struct fs_struct;
 struct futex_pi_state;
 struct io_context;
@@ -581,6 +583,7 @@ struct sched_entity {
 #endif
 };
 
+#ifdef CONFIG_NEW_SCHED
 struct sched_new_entity {
 
 	// struct list_head {
@@ -596,6 +599,7 @@ struct sched_new_entity {
 	unsigned int time_slice;
 	unsigned long time_out;
 };
+#endif
 
 struct sched_rt_entity {
 	struct list_head		run_list;
@@ -802,8 +806,10 @@ struct task_struct {
 	int				normal_prio;
 	unsigned int			rt_priority;
 
+#ifdef CONFIG_NEW_SCHED
 	// if the current task_struct's policy is SCHED_NEW
 	struct sched_new_entity new_se;
+#endif
 
 	struct sched_entity		se;
 	struct sched_rt_entity		rt;

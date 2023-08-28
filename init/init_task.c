@@ -81,7 +81,11 @@ struct task_struct init_task
 	.static_prio	= MAX_PRIO - 20,
 	.normal_prio	= MAX_PRIO - 20,
 
+#ifdef CONFIG_NEW_SCHED
 	.policy		= SCHED_NEW,
+#else
+	.policy		= SCHED_NORMAL,
+#endif
 
 	.cpus_ptr	= &init_task.cpus_mask,
 	.user_cpus_ptr	= NULL,
@@ -99,6 +103,7 @@ struct task_struct init_task
 		.run_list	= LIST_HEAD_INIT(init_task.rt.run_list),
 		.time_slice	= RR_TIMESLICE,
 	},
+#ifdef CONFIG_NEW_SCHED
 	.new_se	= {
 		.time_slice = NEW_RR_TIMESLICE,
 		.on_rq = 0,
@@ -107,6 +112,7 @@ struct task_struct init_task
 		// struct list_head task_list;
 		.task_list = LIST_HEAD_INIT(init_task.new_se.task_list),
 	},
+#endif
 	.tasks		= LIST_HEAD_INIT(init_task.tasks),
 #ifdef CONFIG_SMP
 	.pushable_tasks	= PLIST_NODE_INIT(init_task.pushable_tasks, MAX_PRIO),

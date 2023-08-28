@@ -197,16 +197,23 @@ static inline int dl_policy(int policy)
 	return policy == SCHED_DEADLINE;
 }
 
+#ifdef CONFIG_NEW_SCHED
 static inline int new_policy(int policy)
 {
 	return policy == SCHED_NEW;
 }
+#endif
 
 static inline bool valid_policy(int policy)
 {
 	// make SCHED_NEW a valid policy
+#ifdef CONFIG_NEW_SCHED
 	return idle_policy(policy) || fair_policy(policy) ||
 		rt_policy(policy) || dl_policy(policy) || new_policy(policy);
+#else
+	return idle_policy(policy) || fair_policy(policy) ||
+		rt_policy(policy) || dl_policy(policy);
+#endif
 }
 
 static inline int task_has_idle_policy(struct task_struct *p)
@@ -224,10 +231,12 @@ static inline int task_has_dl_policy(struct task_struct *p)
 	return dl_policy(p->policy);
 }
 
+#ifdef CONFIG_NEW_SCHED
 static inline int task_has_new_policy(struct task_struct *p)
 {
 	return new_policy(p->policy);
 }
+#endif
 
 #define cap_scale(v, s) ((v)*(s) >> SCHED_CAPACITY_SHIFT)
 
@@ -349,7 +358,9 @@ extern int  dl_cpu_busy(int cpu, struct task_struct *p);
 struct cfs_rq;
 struct rt_rq;
 
+#ifdef CONFIG_NEW_SCHED
 struct new_rq;  // run queue of the new scheduling class
+#endif
 
 extern struct list_head task_groups;
 
@@ -709,6 +720,7 @@ struct rt_rq {
 #endif
 };
 
+#ifdef CONFIG_NEW_SCHED
 struct new_rq {
 
 	// number of sched_new_entity in the new_runqueue
@@ -717,6 +729,7 @@ struct new_rq {
 	// it's supposed to link to task_list in se
 	struct list_head task_list;
 };
+#endif
 
 static inline bool rt_rq_is_runnable(struct rt_rq *rt_rq)
 {
@@ -1013,7 +1026,10 @@ struct rq {
 	struct cfs_rq		cfs;
 	struct rt_rq		rt;
 	struct dl_rq		dl;
+
+#ifdef CONFIG_NEW_SCHED
 	struct new_rq		new_runqueue;
+#endif
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this CPU: */
@@ -2287,7 +2303,9 @@ extern struct sched_class __sched_class_lowest[];
 extern const struct sched_class stop_sched_class;
 extern const struct sched_class dl_sched_class;
 extern const struct sched_class rt_sched_class;
+#ifdef CONFIG_NEW_SCHED
 extern const struct sched_class new_sched_class;
+#endif
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
 
@@ -2803,8 +2821,10 @@ extern void init_cfs_rq(struct cfs_rq *cfs_rq);
 extern void init_rt_rq(struct rt_rq *rt_rq);
 extern void init_dl_rq(struct dl_rq *dl_rq);
 
+#ifdef CONFIG_NEW_SCHED
 // initialization called for elsewhere
 extern void init_new_rq(struct new_rq *new_rq_init);
+#endif
 
 extern void cfs_bandwidth_usage_inc(void);
 extern void cfs_bandwidth_usage_dec(void);
